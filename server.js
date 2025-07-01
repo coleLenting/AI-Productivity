@@ -1,4 +1,4 @@
-// server.js - Vercel-Compatible Backend with Google Gemini API
+// server.js - Vercel-Compatible Backend with Google Gemini API and Template Support
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
@@ -10,6 +10,86 @@ const PORT = process.env.PORT || 3000;
 // SECURE: API key - Use environment variable in production
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+
+// Template definitions for different content types
+const CONTENT_TEMPLATES = {
+    linkedin: {
+        name: 'LinkedIn Post',
+        description: 'Professional social media content with engagement focus',
+        promptModifier: `Create a LinkedIn post with the following structure:
+        - Start with an attention-grabbing hook or question
+        - Use 2-3 short paragraphs with line breaks for readability
+        - Include relevant insights or personal experience
+        - End with a clear call-to-action or question to encourage engagement
+        - Add 3-5 relevant hashtags at the end
+        - Use **bold** for emphasis on key points
+        - Keep it professional but conversational
+        - Optimal length: 150-300 words`,
+        formatting: 'markdown'
+    },
+    email: {
+        name: 'Professional Email',
+        description: 'Structured business email with proper formatting',
+        promptModifier: `Create a professional email with this structure:
+        - **Subject:** Clear and specific subject line
+        - **Greeting:** Appropriate salutation
+        - **Opening:** Brief context or purpose
+        - **Body:** Main content in 2-3 paragraphs with clear structure
+        - **Action Items:** Use bullet points (-) if applicable
+        - **Closing:** Professional sign-off
+        - Use **bold** for important points
+        - Keep paragraphs concise and scannable
+        - Maintain professional but friendly tone`,
+        formatting: 'markdown'
+    },
+    report: {
+        name: 'Business Report',
+        description: 'Structured report with sections and data presentation',
+        promptModifier: `Create a structured business report with:
+        - # Main Title
+        - ## Executive Summary (brief overview)
+        - ## Key Findings (use bullet points with -)
+        - ## Detailed Analysis (2-3 subsections with ###)
+        - ## Recommendations (numbered list or bullet points)
+        - ## Conclusion
+        - Use **bold** for metrics, dates, and important data
+        - Use > blockquotes for key insights or quotes
+        - Include clear section headers with proper markdown hierarchy
+        - Present data in an organized, scannable format`,
+        formatting: 'markdown'
+    },
+    blog: {
+        name: 'Blog Post',
+        description: 'Engaging blog content with SEO-friendly structure',
+        promptModifier: `Create a blog post with this structure:
+        - # Compelling Title (H1)
+        - Brief engaging introduction paragraph
+        - ## Main sections with descriptive subheadings (H2)
+        - ### Subsections as needed (H3)
+        - Use bullet points (-) for lists and tips
+        - Include **bold** for key terms and important points
+        - Use *italics* for emphasis and quotes
+        - Add > blockquotes for important insights or statistics
+        - End with a strong conclusion and call-to-action
+        - Write in an engaging, conversational tone
+        - Aim for 500-800 words with good readability`,
+        formatting: 'markdown'
+    },
+    default: {
+        name: 'General Content',
+        description: 'Well-formatted general purpose content',
+        promptModifier: `Create well-structured content with:
+        - Clear hierarchy using # ## ### for headings as appropriate
+        - Use **bold** for important points and key terms
+        - Use *italics* for emphasis
+        - Organize information with bullet points (-) when listing items
+        - Use > blockquotes for important quotes or insights
+        - Structure content in logical, scannable sections
+        - Maintain professional and clear writing style
+        - Ensure proper paragraph breaks for readability`,
+        formatting: 'markdown'
+    }
+};
 
 // Rate limiting middleware
 const apiLimiter = rateLimit({
@@ -86,10 +166,10 @@ async function makeGeminiRequestWithRetry(prompt, maxRetries = 3) {
     }
 }
 
-// Content generation endpoint
+// Enhanced content generation endpoint with template support
 app.post('/api/generate', async (req, res) => {
     try {
-        const { prompt } = req.body;
+        const { prompt, template = 'default' } = req.body;
 
         if (!prompt) {
             return res.status(400).json({ 
@@ -97,14 +177,35 @@ app.post('/api/generate', async (req, res) => {
             });
         }
 
-        console.log('Processing request for prompt length:', prompt.length);
+        // Validate template
+        if (!CONTENT_TEMPLATES[template]) {
+            return res.status(400).json({ 
+                error: `Invalid template. Available templates: ${Object.keys(CONTENT_TEMPLATES).join(', ')}` 
+            });
+        }
 
-        // Add professional context to the prompt
-        const enhancedPrompt = `You are a professional content generator assistant. Create clear, concise, and professional content based on user requirements. 
+        const selectedTemplate = CONTENT_TEMPLATES[template];
+        console.log(`Processing ${selectedTemplate.name} request for prompt length:`, prompt.length);
 
-User Request: ${prompt}
+        // Build enhanced prompt with template-specific instructions
+        const enhancedPrompt = `You are a professional content generator assistant specializing in creating well-structured, engaging content with proper Markdown formatting.
 
-Please provide a well-structured, professional response.`;
+CONTENT TYPE: ${selectedTemplate.name}
+FORMATTING REQUIREMENTS: ${selectedTemplate.promptModifier}
+
+IMPORTANT FORMATTING RULES:
+- Use proper Markdown syntax throughout
+- Ensure all headings use # ## ### hierarchy
+- Use **bold** for emphasis and key points
+- Use *italics* for subtle emphasis
+- Use bullet points (-) for lists
+- Use > for blockquotes and important insights
+- Maintain consistent formatting and professional tone
+- Create scannable, well-organized content
+
+USER REQUEST: ${prompt}
+
+Please generate ${selectedTemplate.description.toLowerCase()} that follows the specified structure and formatting requirements. Make it professional, engaging, and properly formatted with Markdown.`;
 
         const response = await makeGeminiRequestWithRetry(enhancedPrompt);
 
@@ -145,8 +246,19 @@ Please provide a well-structured, professional response.`;
             
             res.json({ 
                 content: content,
+                template: {
+                    type: template,
+                    name: selectedTemplate.name,
+                    description: selectedTemplate.description,
+                    formatting: selectedTemplate.formatting
+                },
                 model: 'gemini-pro',
-                timestamp: new Date().toISOString()
+                timestamp: new Date().toISOString(),
+                metadata: {
+                    wordCount: content.split(' ').length,
+                    hasMarkdown: content.includes('#') || content.includes('**') || content.includes('*'),
+                    contentType: selectedTemplate.name
+                }
             });
         } else {
             console.error('Unexpected Gemini response:', data);
@@ -170,14 +282,37 @@ Please provide a well-structured, professional response.`;
     }
 });
 
+// Get available templates endpoint
+app.get('/api/templates', (req, res) => {
+    const templates = Object.entries(CONTENT_TEMPLATES).map(([key, template]) => ({
+        id: key,
+        name: template.name,
+        description: template.description,
+        formatting: template.formatting
+    }));
+    
+    res.json({
+        templates,
+        count: templates.length,
+        timestamp: new Date().toISOString()
+    });
+});
+
 // Health check endpoint
 app.get('/api/health', (req, res) => {
     res.json({ 
         status: 'OK', 
         timestamp: new Date().toISOString(),
-        version: '2.0.0',
+        version: '2.1.0',
         model: 'gemini-pro',
-        features: ['secure-api-key', 'rate-limiting', 'retry-logic'],
+        features: [
+            'secure-api-key', 
+            'rate-limiting', 
+            'retry-logic', 
+            'template-support',
+            'markdown-formatting'
+        ],
+        templates: Object.keys(CONTENT_TEMPLATES),
         environment: process.env.VERCEL ? 'vercel' : 'local'
     });
 });
@@ -185,9 +320,10 @@ app.get('/api/health', (req, res) => {
 // Test endpoint
 app.get('/api/test', (req, res) => {
     res.json({ 
-        message: 'Gemini API server is running!',
+        message: 'Enhanced Gemini API server is running!',
         timestamp: new Date().toISOString(),
         secure: true,
+        templatesAvailable: Object.keys(CONTENT_TEMPLATES).length,
         environment: process.env.VERCEL ? 'vercel' : 'local'
     });
 });
@@ -222,11 +358,13 @@ if (process.env.VERCEL) {
 } else {
     // For local development
     app.listen(PORT, () => {
-        console.log(`🚀 Content Generator Server running on http://localhost:${PORT}`);
-        console.log(`🤖 Using Google Gemini Pro API`);
+        console.log(`🚀 Enhanced Content Generator Server running on http://localhost:${PORT}`);
+        console.log(`🤖 Using Google Gemini Pro API with Template Support`);
         console.log(`🔒 API key secured in backend`);
         console.log(`📝 API endpoint: http://localhost:${PORT}/api/generate`);
+        console.log(`📋 Templates endpoint: http://localhost:${PORT}/api/templates`);
         console.log(`💖 Health check: http://localhost:${PORT}/api/health`);
         console.log(`🔒 Rate limiting: 15 requests per minute per IP`);
+        console.log(`✨ Available templates: ${Object.keys(CONTENT_TEMPLATES).join(', ')}`);
     });
 }
