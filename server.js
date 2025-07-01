@@ -46,12 +46,12 @@ const CONTENT_TEMPLATES = {
         name: 'Business Report',
         description: 'Structured report with sections and data presentation',
         promptModifier: `Create a structured business report with:
-        - # Main Title
-        - ## Executive Summary (brief overview)
-        - ## Key Findings (use bullet points with -)
-        - ## Detailed Analysis (2-3 subsections with ###)
-        - ## Recommendations (numbered list or bullet points)
-        - ## Conclusion
+        -  Main Title
+        - Executive Summary (brief overview)
+        - Key Findings (use bullet points with -)
+        - Detailed Analysis (2-3 subsections with ###)
+        - Recommendations (numbered list or bullet points)
+        - Conclusion
         - Use **bold** for metrics, dates, and important data
         - Use > blockquotes for key insights or quotes
         - Include clear section headers with proper markdown hierarchy
