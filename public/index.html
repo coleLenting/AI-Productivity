@@ -236,7 +236,7 @@
 
         /* Markdown styling for rendered content */
         .result-content h1 {
-            color: var(--dark);
+            color: var(--dark) !important;
             font-size: 1.8rem;
             font-weight: 700;
             margin: 0 0 1rem 0;
@@ -245,7 +245,7 @@
         }
 
         .result-content h2 {
-            color: var(--dark);
+            color: var(--dark) !important;
             font-size: 1.4rem;
             font-weight: 600;
             margin: 1.5rem 0 0.75rem 0;
@@ -254,41 +254,43 @@
         }
 
         .result-content h3 {
-            color: var(--dark);
+            color: var(--dark) !important;
             font-size: 1.2rem;
             font-weight: 600;
             margin: 1.25rem 0 0.5rem 0;
         }
 
         .result-content h4, .result-content h5, .result-content h6 {
-            color: var(--dark);
+            color: var(--dark) !important;
             font-weight: 600;
             margin: 1rem 0 0.5rem 0;
         }
 
         .result-content p {
             margin: 0 0 1rem 0;
-            color: var(--dark);
+            color: var(--dark) !important;
+            line-height: 1.6;
         }
 
         .result-content strong {
-            color: var(--primary);
+            color: var(--primary) !important;
             font-weight: 600;
         }
 
         .result-content em {
-            color: var(--secondary);
+            color: var(--secondary) !important;
             font-style: italic;
         }
 
         .result-content ul, .result-content ol {
             margin: 0.75rem 0 1rem 1.5rem;
-            color: var(--dark);
+            color: var(--dark) !important;
         }
 
         .result-content li {
             margin: 0.25rem 0;
             line-height: 1.6;
+            color: var(--dark) !important;
         }
 
         .result-content blockquote {
@@ -297,12 +299,13 @@
             margin: 1rem 0;
             padding: 1rem 1.5rem;
             font-style: italic;
-            color: var(--dark);
+            color: var(--dark) !important;
             border-radius: 0 8px 8px 0;
         }
 
         .result-content blockquote p {
             margin: 0;
+            color: var(--dark) !important;
         }
 
         .result-content code {
@@ -311,7 +314,7 @@
             border-radius: 4px;
             font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
             font-size: 0.9em;
-            color: var(--secondary);
+            color: var(--secondary) !important;
         }
 
         .result-content pre {
@@ -325,12 +328,27 @@
         .result-content pre code {
             background: none;
             padding: 0;
+            color: var(--dark) !important;
         }
 
         .result-content hr {
             border: none;
             border-top: 2px solid #e2e8f0;
             margin: 2rem 0;
+        }
+
+        /* Fix for any text elements that might inherit wrong colors */
+        .result-content * {
+            color: inherit;
+        }
+
+        .result-content a {
+            color: var(--primary) !important;
+            text-decoration: underline;
+        }
+
+        .result-content a:hover {
+            color: var(--primary-dark) !important;
         }
 
         .template-info {
