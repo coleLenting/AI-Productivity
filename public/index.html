@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Content Generator - Productivity Boosters</title>
+    <!-- Add marked.js for Markdown rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/marked@9.1.6/marked.min.js"></script>
     <style>
          :root {
             --primary: #4361ee;
@@ -225,12 +227,123 @@
             padding: 1.5rem;
             border-radius: 8px;
             border: 1px solid #edf2f7;
-            white-space: pre-wrap;
             font-family: 'Inter', sans-serif;
             line-height: 1.7;
-            max-height: 400px;
+            max-height: 500px;
             overflow-y: auto;
             font-size: 0.95rem;
+        }
+
+        /* Markdown styling for rendered content */
+        .result-content h1 {
+            color: var(--dark);
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin: 0 0 1rem 0;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--primary);
+        }
+
+        .result-content h2 {
+            color: var(--dark);
+            font-size: 1.4rem;
+            font-weight: 600;
+            margin: 1.5rem 0 0.75rem 0;
+            padding-bottom: 0.25rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .result-content h3 {
+            color: var(--dark);
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin: 1.25rem 0 0.5rem 0;
+        }
+
+        .result-content h4, .result-content h5, .result-content h6 {
+            color: var(--dark);
+            font-weight: 600;
+            margin: 1rem 0 0.5rem 0;
+        }
+
+        .result-content p {
+            margin: 0 0 1rem 0;
+            color: var(--dark);
+        }
+
+        .result-content strong {
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .result-content em {
+            color: var(--secondary);
+            font-style: italic;
+        }
+
+        .result-content ul, .result-content ol {
+            margin: 0.75rem 0 1rem 1.5rem;
+            color: var(--dark);
+        }
+
+        .result-content li {
+            margin: 0.25rem 0;
+            line-height: 1.6;
+        }
+
+        .result-content blockquote {
+            background: rgba(67, 97, 238, 0.05);
+            border-left: 4px solid var(--primary);
+            margin: 1rem 0;
+            padding: 1rem 1.5rem;
+            font-style: italic;
+            color: var(--dark);
+            border-radius: 0 8px 8px 0;
+        }
+
+        .result-content blockquote p {
+            margin: 0;
+        }
+
+        .result-content code {
+            background: #f8f9fa;
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.9em;
+            color: var(--secondary);
+        }
+
+        .result-content pre {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1rem 0;
+        }
+
+        .result-content pre code {
+            background: none;
+            padding: 0;
+        }
+
+        .result-content hr {
+            border: none;
+            border-top: 2px solid #e2e8f0;
+            margin: 2rem 0;
+        }
+
+        .template-info {
+            background: rgba(67, 97, 238, 0.05);
+            border: 1px solid rgba(67, 97, 238, 0.2);
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
 
         .action-buttons {
@@ -539,6 +652,10 @@
 
         <div class="result-container" id="resultArea">
             <h3>📄 Generated Content</h3>
+            <div class="template-info" id="templateInfo" style="display: none;">
+                <span>📋</span>
+                <span id="templateDetails"></span>
+            </div>
             <div class="result-content" id="resultContent"></div>
             <div class="action-buttons">
                 <button class="copy-btn" onclick="copyToClipboard()">
@@ -578,6 +695,14 @@
     </div>
 
     <script>
+        // Configure marked.js options for better rendering
+        marked.setOptions({
+            breaks: true,
+            gfm: true,
+            headerIds: false,
+            mangle: false
+        });
+
         function showStatus(message, type) {
             const statusEl = document.getElementById('statusMessage');
             statusEl.textContent = message;
@@ -600,8 +725,29 @@
             }
         }
 
-        function showResult(content) {
-            document.getElementById('resultContent').textContent = content;
+        function showResult(content, templateInfo = null) {
+            const resultContentEl = document.getElementById('resultContent');
+            const templateInfoEl = document.getElementById('templateInfo');
+            const templateDetailsEl = document.getElementById('templateDetails');
+            
+            // Render Markdown to HTML
+            try {
+                const htmlContent = marked.parse(content);
+                resultContentEl.innerHTML = htmlContent;
+            } catch (error) {
+                console.error('Markdown parsing error:', error);
+                // Fallback to plain text if markdown parsing fails
+                resultContentEl.textContent = content;
+            }
+            
+            // Show template information if available
+            if (templateInfo && templateInfo.template) {
+                templateDetailsEl.textContent = `Generated using ${templateInfo.template.name} template`;
+                templateInfoEl.style.display = 'flex';
+            } else {
+                templateInfoEl.style.display = 'none';
+            }
+            
             document.getElementById('resultArea').style.display = 'block';
             document.getElementById('loading').style.display = 'none';
             window.scrollBy(0, 400); // Smooth scroll to result
@@ -609,11 +755,12 @@
 
         function resetForm() {
             document.getElementById('resultArea').style.display = 'none';
+            document.getElementById('templateInfo').style.display = 'none';
             showStatus('Ready to generate new content', 'success');
         }
 
-        // Simplified API call - NO API KEY NEEDED!
-        async function callAI(prompt) {
+        // Enhanced API call with template support
+        async function callAI(prompt, template = 'default') {
             try {
                 const response = await fetch('/api/generate', {
                     method: 'POST',
@@ -621,7 +768,8 @@
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        prompt: prompt
+                        prompt: prompt,
+                        template: template
                     })
                 });
 
@@ -631,7 +779,7 @@
                 }
 
                 const data = await response.json();
-                return data.content;
+                return data;
             } catch (error) {
                 console.error('API Call Error:', error);
                 
@@ -657,10 +805,10 @@
             const prompt = `Generate a ${tone} ${type} email with the following context: ${context}. Make it professional and concise.`;
             
             showLoading(true);
-            const result = await callAI(prompt);
+            const result = await callAI(prompt, 'email');
             
             if (result) {
-                showResult(result);
+                showResult(result.content, result);
             } else {
                 showLoading(false);
             }
@@ -679,10 +827,10 @@
             const prompt = `Create a ${style} meeting summary for "${title}" based on these notes: ${notes}. Format it professionally.`;
             
             showLoading(true);
-            const result = await callAI(prompt);
+            const result = await callAI(prompt, 'report');
             
             if (result) {
-                showResult(result);
+                showResult(result.content, result);
             } else {
                 showLoading(false);
             }
@@ -701,10 +849,10 @@
             const prompt = `Generate a ${type} for ${audience} using this data: ${data}. Make it structured and professional.`;
             
             showLoading(true);
-            const result = await callAI(prompt);
+            const result = await callAI(prompt, 'report');
             
             if (result) {
-                showResult(result);
+                showResult(result.content, result);
             } else {
                 showLoading(false);
             }
@@ -723,17 +871,20 @@
             const prompt = `Create a ${style} ${platform} post about: ${content}. Include relevant hashtags and make it engaging for the platform.`;
             
             showLoading(true);
-            const result = await callAI(prompt);
+            const result = await callAI(prompt, 'linkedin');
             
             if (result) {
-                showResult(result);
+                showResult(result.content, result);
             } else {
                 showLoading(false);
             }
         }
 
         function copyToClipboard() {
-            const content = document.getElementById('resultContent').textContent;
+            const resultContentEl = document.getElementById('resultContent');
+            // Get the text content from the rendered HTML
+            const content = resultContentEl.innerText || resultContentEl.textContent;
+            
             navigator.clipboard.writeText(content).then(() => {
                 showStatus('Content copied to clipboard!', 'success');
             }).catch(() => {
@@ -743,7 +894,7 @@
 
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
-            showStatus('🚀 Ready to generate content! No setup required.', 'success');
+            showStatus('🚀 Ready to generate content with enhanced formatting! No setup required.', 'success');
         });
     </script>
 </body>
