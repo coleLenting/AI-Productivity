@@ -55,7 +55,8 @@ const CONTENT_TEMPLATES = {
         - Use **bold** for metrics, dates, and important data
         - Use > blockquotes for key insights or quotes
         - Include clear section headers with proper markdown hierarchy
-        - Present data in an organized, scannable format`,
+        - Present data in an organized, scannable format
+        - The output should make use of marked.js for proper Markdown formatting` ,
         formatting: 'markdown'
     },
     blog: {
